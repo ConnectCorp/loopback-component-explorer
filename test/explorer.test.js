@@ -87,6 +87,7 @@ describe('explorer', function() {
     it('should serve correct swagger-ui config', function(done) {
       var app = loopback();
       app.set('restApiRoot', '/rest-api-root');
+      app.set('remoting', { cors: false });
       configureRestApiAndExplorer(app);
 
       request(app)
@@ -108,6 +109,7 @@ describe('explorer', function() {
       // if the basePath ends with a slash too, an incorrect URL is produced
       var app = loopback();
       app.set('restApiRoot', '/apis/');
+      app.set('remoting', { cors: false });
       configureRestApiAndExplorer(app);
 
       request(app)
@@ -129,6 +131,7 @@ describe('explorer', function() {
     var app;
     beforeEach(function setupExplorerWithUiDirs() {
       app = loopback();
+      app.set('remoting', { cors: false });
       explorer(app, {
         uiDirs: [path.resolve(__dirname, 'fixtures', 'dummy-swagger-ui')],
       });
@@ -141,7 +144,7 @@ describe('explorer', function() {
           if (err) return done(err);
 
           // expect the content of `dummy-swagger-ui/swagger-ui.js`
-          expect(res.text).to.contain('/* custom swagger-ui file */' + os.EOL);
+          expect(res.text).to.contain('/* custom swagger-ui file */');
 
           done();
         });
@@ -150,9 +153,12 @@ describe('explorer', function() {
     it('overrides strongloop overrides', function(done) {
       request(app).get('/explorer/')
         .expect(200)
-        // expect the content of `dummy-swagger-ui/index.html`
-        .expect('custom index.html' + os.EOL)
-        .end(done);
+        .end(function(err, res) {
+          if (err) return done(er);
+          // expect the content of `dummy-swagger-ui/index.html`
+          expect(res.text).to.contain('custom index.html');
+          done();
+        });
     });
   });
 
@@ -160,6 +166,7 @@ describe('explorer', function() {
     var app;
     beforeEach(function setupExplorerWithoutUI() {
       app = loopback();
+      app.set('remoting', { cors: false });
       explorer(app, {
         swaggerUI: false,
       });
@@ -195,6 +202,7 @@ describe('explorer', function() {
     var app;
     beforeEach(function() {
       app = loopback();
+      app.set('remoting', { cors: false });
       var Product = loopback.PersistedModel.extend('product');
       Product.attachTo(loopback.memory());
       app.model(Product);
@@ -216,6 +224,7 @@ describe('explorer', function() {
     var app;
     beforeEach(function() {
       app = loopback();
+      app.set('remoting', { cors: false });
     });
 
     it('should allow `uiDirs` to be defined as an Array', function(done) {
@@ -225,9 +234,12 @@ describe('explorer', function() {
 
       request(app).get('/explorer/')
         .expect(200)
-        // expect the content of `dummy-swagger-ui/index.html`
-        .expect('custom index.html' + os.EOL)
-        .end(done);
+        .end(function(err, res) {
+          if (err) return done(err);
+          // expect the content of `dummy-swagger-ui/index.html`
+          expect(res.text).to.contain('custom index.html');
+          done();
+        });
     });
 
     it('should allow `uiDirs` to be defined as an String', function(done) {
@@ -237,15 +249,19 @@ describe('explorer', function() {
 
       request(app).get('/explorer/')
         .expect(200)
-        // expect the content of `dummy-swagger-ui/index.html`
-        .expect('custom index.html' + os.EOL)
-        .end(done);
+        .end(function(err, res) {
+          if (err) return done(err);
+          // expect the content of `dummy-swagger-ui/index.html`
+          expect(res.text).to.contain('custom index.html');
+          done();
+        });
     });
   });
 
   describe('Cross-origin resource sharing', function() {
     it('allows cross-origin requests by default', function(done) {
       var app = loopback();
+      process.once('deprecation', function() { /* ignore */ });
       configureRestApiAndExplorer(app, '/explorer');
 
       request(app)
@@ -258,7 +274,7 @@ describe('explorer', function() {
 
     it('can be disabled by configuration', function(done) {
       var app = loopback();
-      app.set('remoting', { cors: { origin: false }});
+      app.set('remoting', { cors: false });
       configureRestApiAndExplorer(app, '/explorer');
 
       request(app)
@@ -277,6 +293,7 @@ describe('explorer', function() {
 
   it('updates swagger object when a new model is added', function(done) {
     var app = loopback();
+    app.set('remoting', { cors: false });
     configureRestApiAndExplorer(app, '/explorer');
 
     // Ensure the swagger object was built
@@ -310,6 +327,7 @@ describe('explorer', function() {
 
   it('updates swagger object when a remote method is disabled', function(done) {
     var app = loopback();
+    app.set('remoting', { cors: false });
     configureRestApiAndExplorer(app, '/explorer');
 
     // Ensure the swagger object was built
@@ -324,7 +342,7 @@ describe('explorer', function() {
         expect(paths).to.contain('/products/findOne');
 
         var Product = app.models.Product;
-        Product.disableRemoteMethod('findOne', true);
+        Product.disableRemoteMethodByName('findOne');
 
         // Request swagger.json again
         request(app)
@@ -344,6 +362,7 @@ describe('explorer', function() {
   function givenLoopBackAppWithExplorer(explorerBase) {
     return function(done) {
       var app = this.app = loopback();
+      app.set('remoting', { cors: false });
       configureRestApiAndExplorer(app, explorerBase);
 
       done();
